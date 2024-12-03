@@ -1,2 +1,1 @@
-# SharpAviReader
-Simple .NET library for reading video files in AVI format.
+**SharpAviReader** is a simple .NET library for reading video files in AVI format.
