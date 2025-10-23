@@ -5,7 +5,7 @@ namespace SharpAviReader.Riff;
 internal abstract class RiffListReaderBase : RiffReaderBase
 {
     /// <summary>Size in bytes of ChunkId and ChunkSize fields.</summary>
-    public static readonly int ChunkHeaderSize = FourCC.SIZE + sizeof(ushort);
+    public static readonly int ChunkHeaderSize = FourCC.SIZE + sizeof(uint);
 
     protected RiffListReaderBase(BinaryReader binaryReader, FourCC chunkId, long bodyLength, RiffListReaderBase? parent = null)
         : base(binaryReader, chunkId, bodyLength, parent)

@@ -175,7 +175,7 @@ public class AviReader : IDisposable
                     if (sl.ListType == KnownFourCCs.Lists.Movie)
                     {
                         movieChunkStartPos = sc.BinaryReader.BaseStream.Position - sc.CurrentLocalPosition;
-                        movieChunkLength = sc.ContentLength;
+                        movieChunkLength = sc.ContentLength + sc.CurrentLocalPosition;
                     }
                 }
                 else if (sc.ChunkId == KnownFourCCs.Chunks.Index1
