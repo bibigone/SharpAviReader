@@ -1,5 +1,6 @@
 ﻿using SharpAviReader.Avi;
 using System;
+using System.Collections.Generic;
 
 namespace SharpAviReader;
 
@@ -27,10 +28,16 @@ partial class AviStream
         /// </summary>
         public RectInt16 TargetRect => header.Frame;
 
-        internal Video(AviStreamHeader header, byte[]? codecSpecificData, AviSuperIndex superIndex, BitmapInfoHeader bitmapInfo)
+        internal Video(AviStreamHeader header, byte[]? codecSpecificData, AviSuperIndex? superIndex, BitmapInfoHeader bitmapInfo)
             : base(header, codecSpecificData, superIndex)
         {
             BitmapInfo = bitmapInfo;
         }
+
+        /// <summary>Index treated as correct when it contains the same count of items as <see cref="FrameCount"/>.</summary>
+        public override bool? HasCorrectIndexData => FrameCount == Index.Count;
+
+        internal override FourCC? GetDataChunkId(int streamNum)
+            => KnownFourCCs.Chunks.VideoFrame(streamNum, compressed: VideoCodecIds.IsVideoCompressed(VideoCodecId));
     }
 }

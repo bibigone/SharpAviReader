@@ -30,4 +30,10 @@ public static class VideoCodecIds
 
     /// <summary>x264 H.264/MPEG-4 AVC.</summary>
     public static readonly FourCC X264 = new("X264");
+
+    /// <summary>Is video data compressed in a some way?</summary>
+    /// <param name="videoCodecId">Codec ID to be checked.</param>
+    /// <returns><see langword="true"/> - video data is compressed, <see langword="false"/> - otherwise.</returns>
+    public static bool IsVideoCompressed(FourCC videoCodecId)
+        => videoCodecId != Uncompressed && videoCodecId != BitFields;
 }

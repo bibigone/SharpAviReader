@@ -21,5 +21,8 @@ partial class AviStream
         {
             WaveFormat = waveFormat;
         }
+
+        internal override FourCC? GetDataChunkId(int streamNum)
+            => KnownFourCCs.Chunks.AudioData(streamNum);
     }
 }

@@ -3,6 +3,7 @@ using SharpAviReader.Riff;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -143,6 +144,81 @@ public class AviReader : IDisposable
                     }
                 }
             }
+
+            if (streams.Any(str => str.HasCorrectIndexData == false))
+            {
+                using (riffChunk.RestorePositionAfter())
+                {
+                    var oldIndexItems = TryReadAviOldIndex(riffChunk);
+                    if (oldIndexItems.Length > 0)
+                    {
+                        for (var i = 0; i < streams.Length; i++)
+                            streams[i].ExtractIndexFromAviOldIndexIfNeeded(oldIndexItems, i);
+                    }
+                }
+            }
         }
+    }
+
+    private static AviOldIndexEntry[] TryReadAviOldIndex(RiffListReader riffChunk)
+    {
+        long movieChunkStartPos = -1;
+        long movieChunkLength = -1;
+
+        while (!riffChunk.IsEndOfList)
+        {
+            using (var sc = riffChunk.OpenSubChunk())
+            {
+                if (sc.IsList)
+                {
+                    var sl = sc.AsList();
+                    if (sl.ListType == KnownFourCCs.Lists.Movie)
+                    {
+                        movieChunkStartPos = sc.BinaryReader.BaseStream.Position - sc.CurrentLocalPosition;
+                        movieChunkLength = sc.ContentLength;
+                    }
+                }
+                else if (sc.ChunkId == KnownFourCCs.Chunks.Index1
+                    && movieChunkStartPos >= 0
+                    && movieChunkLength > 0)
+                {
+                    var entries = sc.ReadOldIndexEntries();
+                    if (TryPatchAviOldIndexToGlobalOffset(entries, movieChunkStartPos, movieChunkLength))
+                            return entries;
+                }
+            }
+        }
+
+        return Array.Empty<AviOldIndexEntry>();
+    }
+
+    private static bool TryPatchAviOldIndexToGlobalOffset(AviOldIndexEntry[] entries, long movieChunkStartPos, long movieChunkLength)
+    {
+        if (entries.Length == 0)
+            return true;
+
+        var first = entries.First();
+        var last = entries.Last();
+        if (first.Offset >= movieChunkStartPos && last.Offset + last.Size > movieChunkLength)
+            return true;
+
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var entry = entries[i];
+
+            var offset = entry.Offset + movieChunkStartPos;
+            if (offset > uint.MaxValue)
+                return false;
+
+            entries[i] = new AviOldIndexEntry
+            {
+                ChunkId = entry.ChunkId,
+                Flags = entry.Flags,
+                Size = entry.Size,
+                Offset = (uint)offset,
+            };
+        }
+
+        return true;
     }
 }

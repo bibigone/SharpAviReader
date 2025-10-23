@@ -4,6 +4,9 @@ namespace SharpAviReader.Riff;
 
 internal abstract class RiffListReaderBase : RiffReaderBase
 {
+    /// <summary>Size in bytes of ChunkId and ChunkSize fields.</summary>
+    public static readonly int ChunkHeaderSize = FourCC.SIZE + sizeof(ushort);
+
     protected RiffListReaderBase(BinaryReader binaryReader, FourCC chunkId, long bodyLength, RiffListReaderBase? parent = null)
         : base(binaryReader, chunkId, bodyLength, parent)
     {}
@@ -12,7 +15,7 @@ internal abstract class RiffListReaderBase : RiffReaderBase
 
     public RiffChunkReader OpenSubChunk(FourCC expectedChunkId = default)
     {
-        if (CheckReadingScope && CurrentLocalPosition + FourCC.SIZE + sizeof(ushort) > ContentLength)
+        if (CheckReadingScope && CurrentLocalPosition + ChunkHeaderSize > ContentLength)
             throw RiffExceptions.EndOfList(this);
         var chunkId = BinaryReader.ReadFourCC();
         if (expectedChunkId != KnownFourCCs.None && expectedChunkId != chunkId)

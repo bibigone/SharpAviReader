@@ -23,8 +23,6 @@ public partial class AviStream
         {
             if (data.BitmapInfo is null)
                 throw RiffExceptions.VideoFormatNotFound(streamList);
-            if (data.SuperIndex is null)
-                throw RiffExceptions.SuperIndexIsNotFoundForVideoStream(streamList);
             return new Video(data.Header, data.CodecSpecificData, data.SuperIndex, data.BitmapInfo);
         }
 
@@ -71,6 +69,12 @@ public partial class AviStream
     /// <summary>Maximum size of raw frame data in bytes.</summary>
     public int MaxFrameSize { get; protected set; }
 
+    /// <summary>
+    /// Has this stream got correct index data that allows to read frames from streams.
+    /// <see langword="null"/> means unknown.
+    /// </summary>
+    public virtual bool? HasCorrectIndexData => default;
+
     /// <summary>Reads index information from AVI file.</summary>
     /// <param name="reader"></param>
     internal void ReadIndexItems(RiffFileReader reader)
@@ -107,4 +111,45 @@ public partial class AviStream
         indexItems = res;
         MaxFrameSize = maxFrameSize;
     }
+
+    internal virtual void ExtractIndexFromAviOldIndexIfNeeded(AviOldIndexEntry[] oldIndexEntries, int streamNum)
+    {
+        if (HasCorrectIndexData == true)
+            return;
+
+        var dataChunkId = GetDataChunkId(streamNum);
+        if (!dataChunkId.HasValue)
+            return;
+
+        var res = new List<AviIndexItem>();
+        var maxFrameSize = 0;
+
+        foreach (var oldIndexEntry in oldIndexEntries)
+        {
+            if (!oldIndexEntry.IsRecList && !oldIndexEntry.IsNoTime
+                && oldIndexEntry.ChunkId == dataChunkId.Value)
+            {
+                var offset = oldIndexEntry.Offset + RiffListReaderBase.ChunkHeaderSize;
+                var dataSize = (int)oldIndexEntry.Size - RiffListReaderBase.ChunkHeaderSize;
+                res.Add(
+                    new AviIndexItem
+                    {
+                        Offset = offset,
+                        DataSize = dataSize,
+                        IsDeltaFrame = !oldIndexEntry.IsKeyFrame,
+                    });
+
+                if (dataSize > maxFrameSize)
+                    maxFrameSize = dataSize;
+            }
+        }
+
+        if (res.Count > 0)
+        {
+            indexItems = res;
+            MaxFrameSize = maxFrameSize;
+        }
+    }
+
+    internal virtual FourCC? GetDataChunkId(int streamNum) => default;
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using SharpAviReader.Avi;
 
 namespace SharpAviReader.Riff;
@@ -176,6 +177,31 @@ internal static class RiffReadingExtensions
         var res = new AviStdIndexEntry[count];
         for (var i = 0; i < count; i++)
             res[i] = reader.ReadStdIndexEntry();
+        return res;
+    }
+
+    public static AviOldIndexEntry ReadOldIndexEntry(this RiffChunkReader reader)
+        => new()
+        {
+            ChunkId = reader.ReadFourCC(),
+            Flags = reader.ReadUInt32(),
+            Offset = reader.ReadUInt32(),
+            Size = reader.ReadUInt32(),
+        };
+
+    public static AviOldIndexEntry[] ReadOldIndexEntries(this RiffChunkReader reader)
+    {
+        var len = reader.ContentLength - reader.CurrentLocalPosition;
+        var count = len / AviOldIndexEntry.SIZE;
+        if (count <= 0) return Array.Empty<AviOldIndexEntry>();
+        return ReadOldIndexEntries(reader, count);
+    }
+
+    public static AviOldIndexEntry[] ReadOldIndexEntries(this RiffChunkReader reader, long count)
+    {
+        var res = new AviOldIndexEntry[count];
+        for (var i = 0; i < count; i++)
+            res[i] = reader.ReadOldIndexEntry();
         return res;
     }
 }
